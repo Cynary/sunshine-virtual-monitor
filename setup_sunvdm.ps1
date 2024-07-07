@@ -19,7 +19,7 @@ if (! $(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -fi
 $width = [int]$args[0]
 $height = [int]$args[1]
 $refresh_rate = [int]$args[2]
-$hdr = $args[3] -eq "1"
+$hdr = $args[3] -eq "true"
 $hdr_string = if($hdr) { "on" } else { "off" }
 Write-Host "Setting up a moonlight monitor with $($width)x$($height)@$($refresh_rate) with hdr $($hdr_string)"
 
