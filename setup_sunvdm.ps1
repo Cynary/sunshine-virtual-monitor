@@ -42,9 +42,9 @@ foreach ($display in $displays)
 # First make sure the new virtual display is enabled, primary, and fully setup.
 #
 Write-Host "Setting up the virtual display."
-& $multitool /enable $display.source.name
-& $multitool /setprimary $display.source.name
-$display.SetResolution($width,$height,$refresh_rate)
+& $multitool /enable $vdDisplay.source.name
+& $multitool /setprimary $vdDisplay.source.name
+$vdDisplay.SetResolution($width,$height,$refresh_rate)
 
 # Now disable the other displays.
 #
