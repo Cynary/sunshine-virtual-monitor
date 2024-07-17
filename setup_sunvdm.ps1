@@ -39,23 +39,33 @@ foreach ($display in $displays)
     }
 }
 
+$other_displays = $displays | Where-Object {$_.source.description -ne "IddSampleDriver Device HDR"}
+
 # First make sure the new virtual display is enabled, primary, and fully setup.
 #
-Write-Host "Setting up the virtual display."
+Write-Host "Setting up the virtual display and disabling other displays."
+
+# This is probably optional, but running it prior to getting the refreshed status just in case of weirdness.
+#
 & $multitool /enable $vdDisplay.source.name
 & $multitool /setprimary $vdDisplay.source.name
-$vdDisplay.SetResolution($width,$height,$refresh_rate)
 
 # Now disable the other displays.
 #
 Write-Host "Disabling all other displays."
-foreach ($display in $displays)
+$names = $other_displays | ForEach-Object { $_.source.name }
+while(($other_displays | ForEach-Object {WindowsDisplayManager\GetRefreshedDisplay($_)} | Where-Object {$_.active}).Length -gt 0)
 {
-    if ($display.source.description -ne "IddSampleDriver Device HDR")
-    {
-        & $multitool /disable $display.source.name
-    }
+    # Important to set the monitor as primary before removing other displays since windows doesn't allow disabling the current primary display.
+    #
+    & $multitool /enable $vdDisplay.source.name
+    & $multitool /setprimary $vdDisplay.source.name
+    & $multitool /disable $names
 }
+
+# Important to set resolution once all other displays are gone, or windows can change the resolution when the display config changes.
+#
+$vdDisplay.SetResolution($width,$height,$refresh_rate)
 
 # This is a bit of a hack - due to https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1 and https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/2, the HDR controls for the virtual display are actually in the first display via WindowsDisplayManager; it's also the reason we needed a different tool to enable/disable the displays despite iterating through the output of WindowsDisplayManager.
 #
