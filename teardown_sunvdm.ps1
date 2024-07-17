@@ -6,12 +6,15 @@ Write-Host "Removing the moonlight display."
 pnputil /disable-device /deviceid root\iddsampledriver
 
 $filePath = Split-Path $MyInvocation.MyCommand.source
-$stateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
+$displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
+$stateFile = Join-Path -Path $filePath -ChildPath "state.json"
+$vsynctool = Join-Path -Path $filePath -ChildPath "vsynctoggle-1.1.0-x86_64.exe"
+& $vsynctool (Get-Content -Raw $stateFile | ConvertFrom-Json).vsync
 
 # Try a couple of times, it can sometimes take a couple of tries.
 #
 $counter = 0
-while (! $(WindowsDisplayManager\UpdateDisplaysFromFile -filePath $stateFile -disableNotSpecifiedDisplays -validate))
+while (! $(WindowsDisplayManager\UpdateDisplaysFromFile -filePath $displayStateFile -disableNotSpecifiedDisplays -validate))
 {
     ++$counter
     if ($counter -gt 4)

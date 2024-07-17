@@ -8,13 +8,20 @@ if ($args.Length -lt 4)
 }
 
 $filePath = Split-Path $MyInvocation.MyCommand.source
-$stateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
+$displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
+$stateFile = Join-Path -Path $filePath -ChildPath "state.json"
+$vsynctool = Join-Path -Path $filePath -ChildPath "vsynctoggle-1.1.0-x86_64.exe"
+$state = @{ 'vsync' = & $vsynctool status }
 
 $initial_displays = WindowsDisplayManager\GetAllPotentialDisplays
-if (! $(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $stateFile))
+if (! $(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile))
 {
     Throw "Failure saving initial display state to file."
 }
+
+ConvertTo-Json $state | Out-File -FilePath $stateFile
+
+& $vsynctool off
 
 $width = [int]$args[0]
 $height = [int]$args[1]

@@ -46,6 +46,12 @@ The powershell scripts use a module called `WindowsDisplayManager` (https://gith
 Install-Module -Name WindowsDisplayManager
 ```
 
+### VSYNC Toggle
+
+This is used to turn off / restore vsync when the stream starts/ends.
+
+Just download [https://github.com/xanderfrangos/vsync-toggle/releases/download/v1.1.0/vsynctoggle-1.1.0-x86_64.exe]vsynctoggle-1.1.0-x86_64.exe and put it in the same directory as the scripts.
+
 ## Sunshine Setup
 
 In all the text below, replace `%PATH_TO_THIS_REPOSITORY%` with the full path to this repository.
