@@ -58,7 +58,7 @@ Write-Host "Setting up the virtual display and disabling other displays."
 & $multitool /setprimary $vdDisplay.source.name
 
 # Now disable the other displays.
-#
+$retries = 0
 Write-Host "Disabling all other displays."
 $names = $other_displays | ForEach-Object { $_.source.name }
 while(($other_displays | ForEach-Object {WindowsDisplayManager\GetRefreshedDisplay($_)} | Where-Object {$_.active}).Length -gt 0)
@@ -68,19 +68,43 @@ while(($other_displays | ForEach-Object {WindowsDisplayManager\GetRefreshedDispl
     & $multitool /enable $vdDisplay.source.name
     & $multitool /setprimary $vdDisplay.source.name
     & $multitool /disable $names
+
+    if($retries++ -eq 100)
+    {
+        Throw "Failed to disable all other displays."
+    }
 }
 
 # Important to set resolution once all other displays are gone, or windows can change the resolution when the display config changes.
 #
 $vdDisplay.SetResolution($width,$height,$refresh_rate)
 
-# This is a bit of a hack - due to https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1 and https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/2, the HDR controls for the virtual display are actually in the first display via WindowsDisplayManager; it's also the reason we needed a different tool to enable/disable the displays despite iterating through the output of WindowsDisplayManager.
-#
-if($hdr)
+if ($vdDisplay.source.description -eq "IddSampleDriver Device HDR")
 {
-    $displays[0].EnableHdr()
-}
-else
-{
-    $displays[0].DisableHdr()
+    # This is a bit of a hack - due to https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1 and https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/2, the HDR controls for the virtual display are actually in the first display via WindowsDisplayManager; it's also the reason we needed a different tool to enable/disable the displays despite iterating through the output of WindowsDisplayManager.
+    #
+    if($hdr)
+    {
+        $retries = 0
+        while(!($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled)
+        {
+            $display.EnableHdr()
+            if($retries++ -eq 100)
+            {
+                Throw "Failed to enable HDR."
+            }
+        }
+    }
+    else
+    {
+        $retries = 0
+        while(($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled)
+        {
+            $display.DisableHdr()
+            if($retries++ -eq 100)
+            {
+                Throw "Failed to disable HDR."
+            }
+        }
+    }
 }
