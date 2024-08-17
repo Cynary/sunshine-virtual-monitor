@@ -20,7 +20,7 @@ While I'm pretty confident this will not break your computer, I don't know enoug
 
 ### Virtual Display Driver
 
-First, you'll need to add a virtual display to your computer.  You can follow the directions at https://github.com/itsmikethetech/Virtual-Display-Driver - afaict, this is the only way to get HDR support on a virtual monitor.  Note: while the driver and device will exist, they will be disabled while sunshine isn't being used.
+First, you'll need to add a virtual display to your computer.  You can follow the directions from [Virtual Display Driver](https://github.com/itsmikethetech/Virtual-Display-Driver?tab=readme-ov-file#virtual-display-driver) - afaict, this is the only way to get HDR support on a virtual monitor.  Note: while the driver and device will exist, they will be disabled while sunshine isn't being used.
 
 Once you're done adding the device, make sure to disable it.  You can do this in device manager, or you can run the following command in an administrator terminal:
 
@@ -32,7 +32,7 @@ Note: the resolutions supported by the driver are listed in a file called `optio
 
 ### Multi Monitor Tool
 
-Then, you'll need to download multimonitortool at https://www.nirsoft.net/utils/multi_monitor_tool.html - make sure to place the extracted files in the same directory as the scripts.  These scripts assume that the multi-monitor-tool in use is the 64-bit version - if you need the 32 bit version, you'll need to edit this line for the correct path:
+Then, you'll need to download [MultiMonitorTool](https://www.nirsoft.net/utils/multi_monitor_tool.html) - make sure to place the extracted files in the same directory as the scripts.  These scripts assume that the multi-monitor-tool in use is the 64-bit version - if you need the 32 bit version, you'll need to edit this line for the correct path:
 
 ```
 $multitool = Join-Path -Path $filePath -ChildPath "multimonitortool-x64\MultiMonitorTool.exe"
@@ -40,7 +40,7 @@ $multitool = Join-Path -Path $filePath -ChildPath "multimonitortool-x64\MultiMon
 
 ### Windows Display Manager
 
-The powershell scripts use a module called `WindowsDisplayManager` (https://github.com/patrick-theprogrammer/WindowsDisplayManager) - you can install this by starting a privileged powershell, and running:
+The powershell scripts use a module called [`WindowsDisplayManager`](https://github.com/patrick-theprogrammer/WindowsDisplayManager) - you can install this by starting a privileged powershell, and running:
 
 ```
 Install-Module -Name WindowsDisplayManager
@@ -50,7 +50,7 @@ Install-Module -Name WindowsDisplayManager
 
 This is used to turn off / restore vsync when the stream starts/ends.
 
-Just download [https://github.com/xanderfrangos/vsync-toggle/releases/download/v1.1.0/vsynctoggle-1.1.0-x86_64.exe]vsynctoggle-1.1.0-x86_64.exe and put it in the same directory as the scripts.
+Just download [vsync-toggle](https://github.com/xanderfrangos/vsync-toggle/releases/latest) and put it in the same directory as the scripts.
 
 ## Sunshine Setup
 
