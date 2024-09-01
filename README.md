@@ -67,13 +67,21 @@ At the bottom, in the `Command Preparations` section, you will press the `+Add` 
 In the first text box the `config.do_cmd` column, you will write:
 
 ```
+<<<<<<< HEAD
 cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% "%VDD_NAME%"" > %PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1
+=======
+cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% "%VDD_NAME%" > "%PATH_TO_THIS_REPOSITORY%\\sunvdm.log" 2>&1
+>>>>>>> b172618 (Fix VDD name for every Windows configuration)
 ```
 
 In the second text box, the `config.undo_cmd` column, you will write:
 
 ```
+<<<<<<< HEAD
 cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1" %VDD_NAME% >> %PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1
+=======
+cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1" "%VDD_NAME%" >> "%PATH_TO_THIS_REPOSITORY%\\sunvdm.log" 2>&1
+>>>>>>> b172618 (Fix VDD name for every Windows configuration)
 ```
 
 Make sure to replace `%VDD_NAME%` from both commands with the name of the Virtual Display Driver name (e.g.: IddSampleDriver Device HDR)
@@ -85,7 +93,11 @@ You will also select the checkbox for `config.elevated` under the `config.run_as
 You can set the following in your `sunshine.conf` config file:
 
 ```
+<<<<<<< HEAD
 global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% "%VDD_NAME%"" > %PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1" %VDD_NAME% >> %PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1","elevated":"true"}]
+=======
+global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1\" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% \"%VDD_NAME%\"" > \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1\"","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1\" \"%VDD_NAME%\"" >> \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","elevated":"true"}]
+>>>>>>> b172618 (Fix VDD name for every Windows configuration)
 ```
 
 If you already have something in the `global_prep_cmd` that you setup, you should be savvy enough to know where/how to add this to the list.
