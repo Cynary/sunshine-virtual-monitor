@@ -85,7 +85,7 @@ You will also select the checkbox for `config.elevated` under the `config.run_as
 You can set the following in your `sunshine.conf` config file:
 
 ```
-global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1\" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% \"%VDD_NAME%\"" > \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log 2>&1\"","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1\" \"%VDD_NAME%\"" >> \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","elevated":"true"}]
+global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1\" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% \"%VDD_NAME%\" > \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1\" \"%VDD_NAME%\" >> \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","elevated":"true"}]
 ```
 
 If you already have something in the `global_prep_cmd` that you setup, you should be savvy enough to know where/how to add this to the list.
