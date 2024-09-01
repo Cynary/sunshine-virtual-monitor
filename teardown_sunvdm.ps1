@@ -1,9 +1,18 @@
 Import-Module WindowsDisplayManager
 
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+if ($args.Length -lt 1)
+{
+    Throw "Incorrect number of args: should pass VDD_NAME"
+}
+
+$vdd_name = $args[0]
+
 # Might not work well if you have more than one GPU with displays attached. See https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1
 #
 Write-Host "Removing the moonlight display."
-pnputil /disable-device /deviceid root\iddsampledriver
+Get-PnpDevice -FriendlyName $vdd_name | Disable-PnpDevice -Confirm:$false
 
 $filePath = Split-Path $MyInvocation.MyCommand.source
 $displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
