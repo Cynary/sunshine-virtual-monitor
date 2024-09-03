@@ -4,7 +4,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Snapshot the current display state so we can restore it after the session.
 #
-if ($args.Length -lt 4)
+if ($args.Length -lt 5)
 {
     Throw "Incorrect number of args: should pass WIDTH HEIGHT REFRESH_RATE HDR{0|1} VDD_NAME"
 }
