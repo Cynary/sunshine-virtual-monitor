@@ -69,13 +69,6 @@ Once you're done adding the device, make sure to disable it.  You can do this in
 pnputil /disable-device /deviceid root\iddsampledriver
 ```
 
-> [!NOTE]
-> Make sure the `C:\IddSampleDriver\option.txt` file exists (create it if it doesn't).
->
-> Open the file with notepad and write `1`, add a new line, save and close.
->
-> The custom resolutions/frame rates of your clients will automatically be updated in the file.
-
 ### Multi Monitor Tool
 
 Then, you'll need to download [MultiMonitorTool](https://www.nirsoft.net/utils/multi_monitor_tool.html) - make sure to place the extracted files in the same directory as the scripts.  These scripts assume that the multi-monitor-tool in use is the 64-bit version - if you need the 32 bit version, you'll need to edit this line for the correct path:

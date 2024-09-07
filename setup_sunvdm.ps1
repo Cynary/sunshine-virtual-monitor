@@ -41,6 +41,24 @@ $option_to_check = "$width, $height, $refresh_rate"
 $option_file_path = "C:\IddSampleDriver\option.txt"
 $option_file_content = Get-Content -Path $option_file_path
 
+# + Check if the file exists
+if (-Not (Test-Path -Path $option_file_path))
+{
+    $directory = [System.IO.Path]::GetDirectoryName($option_file_path)
+    
+    Write-Host "Creating $option_file_path..."
+
+    # + Check if the folder exists, otherwise create it
+    if (-Not (Test-Path -Path $directory))
+    {
+        # + Create the folder
+        New-Item -Path $directory -ItemType Directory -Force
+    }
+
+    # + Create the file and write 1 in it
+    Set-Content -Path $option_file_path -Value "1"
+}
+
 # + Verify the resolution associated with frame rate is not already in the option.txt file
 if ($option_file_content -notcontains $option_to_check)
 {
