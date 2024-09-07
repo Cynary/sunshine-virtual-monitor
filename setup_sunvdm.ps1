@@ -30,7 +30,25 @@ $height = [int]$args[1]
 $refresh_rate = [int]$args[2]
 $hdr = $args[3] -eq "true"
 $hdr_string = if($hdr) { "on" } else { "off" }
-$vdd_name = if ($args[3] -ne "true" -and $args[3] -ne "false") { $args[3] } else { $args[4] }
+
+Write-Output "hdr = $hdr_string"
+
+# + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
+$vdd_name = $args[4]
+
+# + Add the feature of auto resolution/frame rate without the need of adding them manually in option.txt
+$option_to_check = "$width, $height, $refresh_rate"
+$option_file_path = "C:\IddSampleDriver\option.txt"
+$option_file_content = Get-Content -Path $option_file_path
+
+# + Verify the resolution associated with frame rate is not already in the option.txt file
+if ($option_file_content -notcontains $option_to_check)
+{
+    # + Add the string to the end of the file
+    Add-Content -Path $option_file_path -Value $option_to_check
+    Write-Output "The new resolution/frame rate '$option_to_check' has been added to $option_file_path"
+}
+
 Write-Host "Setting up a moonlight monitor with $($width)x$($height)@$($refresh_rate) with hdr $($hdr_string)"
 
 Write-Host "Enabling the virtual display."
@@ -82,7 +100,7 @@ while(($other_displays | ForEach-Object {WindowsDisplayManager\GetRefreshedDispl
 #
 $vdDisplay.SetResolution($width,$height,$refresh_rate)
 
-if ($vdDisplay.source.description -eq $vdd_name -and ${WindowsDisplayManager\GetRefreshedDisplay($displays[0]).hdrInfo.hdrSupported})
+if ($vdDisplay.source.description -eq $vdd_name -and (WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrSupported)
 {
     # This is a bit of a hack - due to https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1 and https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/2, the HDR controls for the virtual display are actually in the first display via WindowsDisplayManager; it's also the reason we needed a different tool to enable/disable the displays despite iterating through the output of WindowsDisplayManager.
     #
