@@ -1,9 +1,15 @@
 Import-Module WindowsDisplayManager
 
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+
+# + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
+$vdd_name = (Get-PnpDevice -Class Display | Where-Object {$_.FriendlyName -like "*idd*" -or $_.FriendlyName -like "*mtt*"}).FriendlyName
+
 # Might not work well if you have more than one GPU with displays attached. See https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1
 #
 Write-Host "Removing the moonlight display."
-pnputil /disable-device /deviceid root\iddsampledriver
+Get-PnpDevice -FriendlyName $vdd_name | Disable-PnpDevice -Confirm:$false
 
 $filePath = Split-Path $MyInvocation.MyCommand.source
 $displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
