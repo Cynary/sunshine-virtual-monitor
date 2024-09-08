@@ -60,7 +60,7 @@ While I'm pretty confident this will not break your computer, I don't know enoug
 
 ## Setup
 
-First, download the [latest release](https://github.com/LeGeRyChEeSe/sunshine-virtual-monitor/releases/latest) (`.zip` file) and unzip it.
+First, download the [latest release](https://github.com/Cynary/sunshine-virtual-monitor/releases/latest) (`.zip` file) and unzip it.
 
 
 ### Virtual Display Driver
