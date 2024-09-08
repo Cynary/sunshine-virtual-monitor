@@ -2,12 +2,9 @@ Import-Module WindowsDisplayManager
 
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-if ($args.Length -lt 1)
-{
-    Throw "Incorrect number of args: should pass VDD_NAME"
-}
 
-$vdd_name = $args[0]
+# + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
+$vdd_name = (Get-PnpDevice -Class Display | Where-Object {$_.FriendlyName -like "*idd*" -or $_.FriendlyName -like "*mtt*"}).FriendlyName
 
 # Might not work well if you have more than one GPU with displays attached. See https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1
 #

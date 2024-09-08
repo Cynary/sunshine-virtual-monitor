@@ -4,6 +4,7 @@
     It deactivates all the other monitors while streaming and activate them back when the stream is finished.
 </p>
 
+
 # Table of Contents
 - [Disclaimer](#disclaimer)
 - [Setup](#setup)
@@ -14,6 +15,7 @@
 - [Sunshine Setup](#sunshine-setup)
     - [UI](#ui)
     - [Config File](#config-file)
+
 
 ## Disclaimer
 
@@ -55,9 +57,11 @@ While I'm pretty confident this will not break your computer, I don't know enoug
     
     - If you already have a second monitor, disconnect it - similar to the point above, might result in getting signal back.
 
+
 ## Setup
 
 First, download the [latest release](https://github.com/LeGeRyChEeSe/sunshine-virtual-monitor/releases/latest) (`.zip` file) and unzip it.
+
 
 ### Virtual Display Driver
 
@@ -69,6 +73,7 @@ Once you're done adding the device, make sure to disable it.  You can do this in
 pnputil /disable-device /deviceid root\iddsampledriver
 ```
 
+
 ### Multi Monitor Tool
 
 Then, you'll need to download [MultiMonitorTool](https://www.nirsoft.net/utils/multi_monitor_tool.html) - make sure to place the extracted files in the same directory as the scripts.  These scripts assume that the multi-monitor-tool in use is the 64-bit version - if you need the 32 bit version, you'll need to edit this line for the correct path:
@@ -76,6 +81,7 @@ Then, you'll need to download [MultiMonitorTool](https://www.nirsoft.net/utils/m
 ```batch
 $multitool = Join-Path -Path $filePath -ChildPath "multimonitortool-x64\MultiMonitorTool.exe"
 ```
+
 
 ### Windows Display Manager
 
@@ -85,11 +91,13 @@ The powershell scripts use a module called [`WindowsDisplayManager`](https://git
 Install-Module -Name WindowsDisplayManager
 ```
 
+
 ### VSYNC Toggle
 
 This is used to turn off / restore vsync when the stream starts/ends.
 
 Just download [vsync-toggle](https://github.com/xanderfrangos/vsync-toggle/releases/latest) and put it in the same directory as the scripts.
+
 
 ## Sunshine Setup
 
@@ -97,6 +105,7 @@ In all the text below, replace `%PATH_TO_THIS_REPOSITORY%` with the full path to
 
 > [!NOTE]
 > The commands below will forward the scripts output to a file in this repository, named `sunvdm.log` - this is optional and can be removed if you don't care for logs / can be directed somewhere else.
+
 
 ### UI
 
@@ -107,29 +116,28 @@ At the bottom, in the `Command Preparations` section, you will press the `+Add` 
 In the first text box the `config.do_cmd` column, you will write:
 
 ```batch
-cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\setup_sunvdm.ps1" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% "%VDD_NAME%" > "%PATH_TO_THIS_REPOSITORY%\sunvdm.log" 2>&1
+cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\setup_sunvdm.ps1" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% > "%PATH_TO_THIS_REPOSITORY%\sunvdm.log" 2>&1
 ```
 
 In the second text box, the `config.undo_cmd` column, you will write:
 
 ```batch
-cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\teardown_sunvdm.ps1" "%VDD_NAME%" >> "%PATH_TO_THIS_REPOSITORY%\sunvdm.log" 2>&1
+cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_TO_THIS_REPOSITORY%\teardown_sunvdm.ps1" >> "%PATH_TO_THIS_REPOSITORY%\sunvdm.log" 2>&1
 ```
 
 > [!WARNING]
-> Make sure to replace `%VDD_NAME%` from both commands with the name of the Virtual Display Driver name (e.g.: IddSampleDriver Device HDR)
->
-> Make sure also to replace `%PATH_TO_THIS_REPOSITORY%` with the correct path to the folder containing the scripts.
+> Make sure to replace `%PATH_TO_THIS_REPOSITORY%` with the correct path to the folder containing the scripts.
 
 > [!NOTE]
 > You will also select the checkbox for `config.elevated` under the `config.run_as` column (we need to run as elevated in order to enable and disable the display device).
+
 
 ### Config File
 
 You can set the following in your `sunshine.conf` config file:
 
 ```batch
-global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1\" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% \"%VDD_NAME%\" > \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1\" \"%VDD_NAME%\" >> \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","elevated":"true"}]
+global_prep_cmd = [{"do":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\setup_sunvdm.ps1\" %SUNSHINE_CLIENT_WIDTH% %SUNSHINE_CLIENT_HEIGHT% %SUNSHINE_CLIENT_FPS% %SUNSHINE_CLIENT_HDR% > \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","undo":"cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file \"%PATH_TO_THIS_REPOSITORY%\\teardown_sunvdm.ps1\" >> \"%PATH_TO_THIS_REPOSITORY%\\sunvdm.log\" 2>&1","elevated":"true"}]
 ```
 
 > [!NOTE]

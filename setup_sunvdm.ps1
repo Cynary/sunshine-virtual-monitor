@@ -4,9 +4,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Snapshot the current display state so we can restore it after the session.
 #
-if ($args.Length -lt 5)
+if ($args.Length -ne 4)
 {
-    Throw "Incorrect number of args: should pass WIDTH HEIGHT REFRESH_RATE HDR{0|1} VDD_NAME"
+    Throw "Incorrect number of args: should pass WIDTH HEIGHT REFRESH_RATE HDR{0|1}"
 }
 
 $filePath = Split-Path $MyInvocation.MyCommand.source
@@ -31,15 +31,12 @@ $refresh_rate = [int]$args[2]
 $hdr = $args[3] -eq "true"
 $hdr_string = if($hdr) { "on" } else { "off" }
 
-Write-Output "hdr = $hdr_string"
-
 # + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
-$vdd_name = $args[4]
+$vdd_name = (Get-PnpDevice -Class Display | Where-Object {$_.FriendlyName -like "*idd*" -or $_.FriendlyName -like "*mtt*"}).FriendlyName
 
 # + Add the feature of auto resolution/frame rate without the need of adding them manually in option.txt
 $option_to_check = "$width, $height, $refresh_rate"
 $option_file_path = "C:\IddSampleDriver\option.txt"
-$option_file_content = Get-Content -Path $option_file_path
 
 # + Check if the file exists
 if (-Not (Test-Path -Path $option_file_path))
@@ -52,12 +49,14 @@ if (-Not (Test-Path -Path $option_file_path))
     if (-Not (Test-Path -Path $directory))
     {
         # + Create the folder
-        New-Item -Path $directory -ItemType Directory -Force
+        New-Item -Path $directory -ItemType Directory -Force > $null 2>&1
     }
 
     # + Create the file and write 1 in it
     Set-Content -Path $option_file_path -Value "1"
 }
+
+$option_file_content = Get-Content -Path $option_file_path
 
 # + Verify the resolution associated with frame rate is not already in the option.txt file
 if ($option_file_content -notcontains $option_to_check)
@@ -127,7 +126,7 @@ if ($vdDisplay.source.description -eq $vdd_name -and (WindowsDisplayManager\GetR
         $retries = 0
         while(!($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled)
         {
-            $display.EnableHdr()
+            $display.EnableHdr() > $null 2>&1
             if($retries++ -eq 100)
             {
                 Throw "Failed to enable HDR."
@@ -139,7 +138,7 @@ if ($vdDisplay.source.description -eq $vdd_name -and (WindowsDisplayManager\GetR
         $retries = 0
         while(($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled)
         {
-            $display.DisableHdr()
+            $display.DisableHdr() > $null 2>&1
             if($retries++ -eq 100)
             {
                 Throw "Failed to disable HDR."
