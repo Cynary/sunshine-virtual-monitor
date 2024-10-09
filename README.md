@@ -12,9 +12,10 @@
     - [Multi Monitor Tool](#multi-monitor-tool)
     - [Windows Display Manager](#windows-display-manager)
     - [VSYNC Toggle](#vsync-toggle)
+    - [Scripts Directory Files](#scripts-directory-files)
 - [Sunshine Setup](#sunshine-setup)
-    - [UI](#ui)
-    - [Config File](#config-file)
+    - [Option 1 - UI](#option-1---ui)
+    - [Option 2 - Config File](#option-2---config-file)
 
 
 ## Disclaimer
@@ -97,6 +98,22 @@ Install-Module -Name WindowsDisplayManager
 This is used to turn off / restore vsync when the stream starts/ends.
 
 Just download [vsync-toggle](https://github.com/xanderfrangos/vsync-toggle/releases/latest) and put it in the same directory as the scripts.
+
+### Scripts directory files
+
+After the steps above, the scripts directory will look like this
+
+LICENSE
+
+multimonitortool-x64 (directory)
+
+README.md
+
+setup_sunvdm.ps1
+
+teardown_sunvdm.ps1
+
+vsynctoggle-1.1.0-x86_64.exe
 
 
 ## Sunshine Setup
