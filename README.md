@@ -107,7 +107,7 @@ In all the text below, replace `%PATH_TO_THIS_REPOSITORY%` with the full path to
 > The commands below will forward the scripts output to a file in this repository, named `sunvdm.log` - this is optional and can be removed if you don't care for logs / can be directed somewhere else.
 
 
-### UI
+### Option 1 - UI
 
 In the sunshine UI navigate to Configuration, and go to the General Tab.
 
@@ -132,7 +132,7 @@ cmd /C powershell.exe -executionpolicy bypass -windowstyle hidden -file "%PATH_T
 > You will also select the checkbox for `config.elevated` under the `config.run_as` column (we need to run as elevated in order to enable and disable the display device).
 
 
-### Config File
+### Option 2 - Config File
 
 You can set the following in your `sunshine.conf` config file:
 
