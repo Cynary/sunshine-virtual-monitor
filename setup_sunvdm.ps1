@@ -13,6 +13,9 @@ $displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
 $stateFile = Join-Path -Path $filePath -ChildPath "state.json"
 $vsynctool = Join-Path -Path $filePath -ChildPath "vsynctoggle-1.1.0-x86_64.exe"
 $state = @{ 'vsync' = & $vsynctool status }
+if ($state['vsync'] -like '*default*') {
+    $state['vsync'] = 'default'
+}
 
 $initial_displays = WindowsDisplayManager\GetAllPotentialDisplays
 if (! $(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile)) {
