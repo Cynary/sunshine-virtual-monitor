@@ -4,7 +4,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 
 # + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
-$vdd_name = (Get-PnpDevice -Class Display | Where-Object {$_.FriendlyName -like "*idd*" -or $_.FriendlyName -like "*mtt*"}).FriendlyName
+$vdd_name = (
+    Get-PnpDevice -Class Display | 
+    Where-Object {
+        $_.FriendlyName -like "*idd*" -or
+        $_.FriendlyName -like "*mtt*" -or
+        $_.FriendlyName -like "Virtual Display with HDR"
+    })[0].FriendlyName
 
 # Might not work well if you have more than one GPU with displays attached. See https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1
 #
