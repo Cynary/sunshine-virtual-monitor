@@ -9,7 +9,7 @@ $vdd_name = (
     Where-Object {
         $_.FriendlyName -like "*idd*" -or
         $_.FriendlyName -like "*mtt*" -or
-        $_.FriendlyName -like "Virtual Display with HDR"
+        $_.FriendlyName -like "Virtual Display*"
     })[0].FriendlyName
 
 # Might not work well if you have more than one GPU with displays attached. See https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1
