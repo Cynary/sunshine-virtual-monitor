@@ -99,17 +99,35 @@ Write-Host "Setting up the virtual display and disabling other displays."
 
 # Now disable the other displays.
 $retries = 0
-Write-Host "Disabling all other displays."
-$names = $other_displays | ForEach-Object { $_.source.name }
-while (($other_displays | ForEach-Object { WindowsDisplayManager\GetRefreshedDisplay($_) } | Where-Object { $_.active }).Length -gt 0) {
-    # Important to set the monitor as primary before removing other displays since windows doesn't allow disabling the current primary display.
-    #
-    & $multitool /enable $vdDisplay.source.name
-    & $multitool /setprimary $vdDisplay.source.name
-    & $multitool /disable $names
 
-    if ($retries++ -eq 100) {
-        Throw "Failed to disable all other displays."
+# First ensure virtual display is primary
+# Important to set the monitor as primary before removing other displays since windows doesn't allow disabling the current primary display.
+$result = & $multitool /setprimary $vdDisplay.source.name
+Write-Host "Set virtual-display as primary: $result"
+
+# Disable each display individually
+foreach ($display in $other_displays) {
+    $displayName = $display.source.name
+    Write-Host "Attempting to disable display: $displayName"
+    
+    $retries = 0
+    while ($true) {
+        $refreshed = WindowsDisplayManager\GetRefreshedDisplay($display)
+        
+        if (-not $refreshed.active) {
+            Write-Host "Successfully disabled $displayName"
+            break
+        }
+        
+        Write-Host "Attempt $($retries + 1) to disable $displayName..."
+        $result = & $multitool /disable $displayName
+        Write-Host "Disable display: $result"
+        
+        if ($retries++ -eq 50) {
+            Write-Host "Failed to disable $displayName after 50 attempts"
+            Throw "Failed to disable display $displayName"
+        }
+        Start-Sleep -Milliseconds 500
     }
 }
 
