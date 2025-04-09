@@ -86,7 +86,7 @@ foreach ($display in $displays) {
     }
 }
 
-$other_displays = $displays | Where-Object { $_.source.description -ne $vdd_name }
+$other_displays = $displays | Where-Object { $_.source.description -ne $vdd_name -and $_.Enabled }
 
 # First make sure the new virtual display is enabled, primary, and fully setup.
 #
