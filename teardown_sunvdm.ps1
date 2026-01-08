@@ -1,7 +1,6 @@
-Import-Module WindowsDisplayManager
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
+Import-Module WindowsDisplayManager
 
 # + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
 $vdd_name = (
