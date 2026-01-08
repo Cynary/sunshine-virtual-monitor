@@ -1,6 +1,6 @@
-Import-Module WindowsDisplayManager
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+Import-Module WindowsDisplayManager
 
 # Snapshot the current display state so we can restore it after the session.
 #
