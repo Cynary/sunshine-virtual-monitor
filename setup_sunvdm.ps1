@@ -1,141 +1,191 @@
-Import-Module WindowsDisplayManager
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-# Snapshot the current display state so we can restore it after the session.
-#
-if ($args.Length -ne 4) {
-    Throw "Incorrect number of args: should pass WIDTH HEIGHT REFRESH_RATE HDR{0|1}"
+Import-Module WindowsDisplayManager
+
+# ----------------------------
+# helpers: env-first parsing
+# ----------------------------
+function Get-Int($envName, $argIndex) {
+    $v = [Environment]::GetEnvironmentVariable($envName)
+    if ($v) { return [int]$v }
+    if ($args.Length -gt $argIndex) { return [int]$args[$argIndex] }
+    Throw "missing $envName"
 }
 
-$filePath = Split-Path $MyInvocation.MyCommand.source
-$displayStateFile = Join-Path -Path $filePath -ChildPath "display_state.json"
-$stateFile = Join-Path -Path $filePath -ChildPath "state.json"
-$vsynctool = Join-Path -Path $filePath -ChildPath "vsynctoggle-1.1.0-x86_64.exe"
-$state = @{ 'vsync' = & $vsynctool status }
-if ($state['vsync'] -like '*default*') {
-    $state['vsync'] = 'default'
+function Get-Bool($envName, $argIndex) {
+    $v = [Environment]::GetEnvironmentVariable($envName)
+    if ($v) { return $v -match '^(1|true|yes)$' }
+    if ($args.Length -gt $argIndex) { return $args[$argIndex] -match '^(1|true|yes)$' }
+    return $false
 }
+
+# ----------------------------
+# sunshine parameters
+# ----------------------------
+$width        = Get-Int  "SUNSHINE_CLIENT_WIDTH"  0
+$height       = Get-Int  "SUNSHINE_CLIENT_HEIGHT" 1
+$refresh_rate = Get-Int  "SUNSHINE_CLIENT_FPS"    2
+$hdr          = Get-Bool "SUNSHINE_CLIENT_HDR"    3
+$hdr_string   = if ($hdr) { "on" } else { "off" }
+
+Write-Host "sunshine params: ${width}x${height}@${refresh_rate} hdr=${hdr_string}"
+
+# ----------------------------
+# paths / tools
+# ----------------------------
+$filePath = Split-Path $MyInvocation.MyCommand.Source
+$displayStateFile = Join-Path $filePath "display_state.json"
+$stateFile        = Join-Path $filePath "state.json"
+$vsynctool        = Join-Path $filePath "vsynctoggle-1.1.0-x86_64.exe"
+$multitool        = Join-Path $filePath "multimonitortool-x64\MultiMonitorTool.exe"
+$option_file_path = "C:\IddSampleDriver\option.txt"
+# --- patch VDD driver XML with requested resolution if missing ---
+$driverConfig = "C:\VirtualDisplayDriver\vdd_settings.xml"
+# load XML
+[xml]$xml = Get-Content $driverConfig
+
+# ----------------------------
+# snapshot current state
+# ----------------------------
+$state = @{ vsync = & $vsynctool status }
+if ($state.vsync -like "*default*") { $state.vsync = "default" }
+ConvertTo-Json $state | Out-File $stateFile
 
 $initial_displays = WindowsDisplayManager\GetAllPotentialDisplays
-if (! $(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile)) {
-    Throw "Failure saving initial display state to file."
+if (!(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile)) {
+    Throw "failed to save initial display state"
 }
-
-ConvertTo-Json $state | Out-File -FilePath $stateFile
 
 & $vsynctool off
 
-$width = [int]$args[0]
-$height = [int]$args[1]
-$refresh_rate = [int]$args[2]
-$hdr = $args[3] -eq "true"
-$hdr_string = if ($hdr) { "on" } else { "off" }
-
-# + Choose the exact name of the Virtual Monitor to allow different versions without breaking the script.
+# ----------------------------
+# find virtual display device
+# ----------------------------
 $vdd_name = (
-    Get-PnpDevice -Class Display | 
+    Get-PnpDevice -Class Display |
     Where-Object {
         $_.FriendlyName -like "*idd*" -or
         $_.FriendlyName -like "*mtt*" -or
         $_.FriendlyName -like "Virtual Display*"
-    })[0].FriendlyName
-
-# + Add the feature of auto resolution/frame rate without the need of adding them manually in option.txt
-$option_to_check = "$width, $height, $refresh_rate"
-$option_file_path = "C:\IddSampleDriver\option.txt"
-
-# + Check if the file exists
-if (-Not (Test-Path -Path $option_file_path)) {
-    $directory = [System.IO.Path]::GetDirectoryName($option_file_path)
-    
-    Write-Host "Creating $option_file_path..."
-
-    # + Check if the folder exists, otherwise create it
-    if (-Not (Test-Path -Path $directory)) {
-        # + Create the folder
-        New-Item -Path $directory -ItemType Directory -Force > $null 2>&1
     }
+)[0].FriendlyName
 
-    # + Create the file and write 1 in it
+if (-not $vdd_name) {
+    Throw "virtual display device not found"
+}
+
+# check if resolution exists
+$resFound = $xml.vdd_settings.resolutions.resolution | Where-Object {
+    $_.width -eq $width -and $_.height -eq $height -and $_.refresh -eq $refresh_rate
+}
+
+if (-not $resFound) {
+    Write-Host "Resolution $width x $height @$refresh_rate not in driver XML. Adding it..."
+    
+    # create new <resolution> node
+    $newRes = $xml.CreateElement("resolution")
+    $wNode = $xml.CreateElement("width"); $wNode.InnerText = $width; $newRes.AppendChild($wNode) > $null
+    $hNode = $xml.CreateElement("height"); $hNode.InnerText = $height; $newRes.AppendChild($hNode) > $null
+    $rNode = $xml.CreateElement("refresh"); $rNode.InnerText = $refresh_rate; $newRes.AppendChild($rNode) > $null
+
+    # append it
+    $xml.vdd_settings.resolutions.AppendChild($newRes) > $null
+
+    # save back
+    $xml.Save($driverConfig)
+    Write-Host "Driver XML patched, restarting Virtual Display Driver..."
+
+    # restart driver service (change service name if yours differs)
+    Get-PnpDevice -FriendlyName $vdd_name | Disable-PnpDevice -Confirm:$false
+
+    Write-Host "Driver restarted, XML changes applied."
+}
+
+# ----------------------------
+# ensure option.txt contains mode
+# ----------------------------
+if (!(Test-Path $option_file_path)) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $option_file_path) | Out-Null
     Set-Content -Path $option_file_path -Value "1"
 }
 
-$option_file_content = Get-Content -Path $option_file_path
-
-# + Verify the resolution associated with frame rate is not already in the option.txt file
-if ($option_file_content -notcontains $option_to_check) {
-    # + Add the string to the end of the file
+$option_to_check = "$width, $height, $refresh_rate"
+if ((Get-Content $option_file_path) -notcontains $option_to_check) {
     Add-Content -Path $option_file_path -Value $option_to_check
-    Write-Output "The new resolution/frame rate '$option_to_check' has been added to $option_file_path"
 }
 
-Write-Host "Setting up a moonlight monitor with $($width)x$($height)@$($refresh_rate) with hdr $($hdr_string)"
+Write-Host "setting up virtual display ${width}x${height}@${refresh_rate} hdr ${hdr_string}"
 
-Write-Host "Enabling the virtual display."
+# ----------------------------
+# enable virtual display
+# ----------------------------
 Get-PnpDevice -FriendlyName $vdd_name | Enable-PnpDevice -Confirm:$false
 
-$displays = WindowsDisplayManager\GetAllPotentialDisplays
-$multitool = Join-Path -Path $filePath -ChildPath "multimonitortool-x64\MultiMonitorTool.exe"
-
-# Find the virtual display.
-#
-foreach ($display in $displays) {
-    if ($display.source.description -eq $vdd_name) {
-        $vdDisplay = $display
-    }
-}
-
-$other_displays = $displays | Where-Object { $_.source.description -ne $vdd_name -and $_.Enabled }
-
-# First make sure the new virtual display is enabled, primary, and fully setup.
-#
-Write-Host "Setting up the virtual display and disabling other displays."
-
-# This is probably optional, but running it prior to getting the refreshed status just in case of weirdness.
-#
-& $multitool /enable $vdDisplay.source.name
-& $multitool /setprimary $vdDisplay.source.name
-
-# Now disable the other displays.
+# ---------------------------
+# display convergence loop
+# ---------------------------
 $retries = 0
-Write-Host "Disabling all other displays."
-$names = $other_displays | ForEach-Object { $_.source.name }
-while (($other_displays | ForEach-Object { WindowsDisplayManager\GetRefreshedDisplay($_) } | Where-Object { $_.active }).Length -gt 0) {
-    # Important to set the monitor as primary before removing other displays since windows doesn't allow disabling the current primary display.
-    #
-    & $multitool /enable $vdDisplay.source.name
-    & $multitool /setprimary $vdDisplay.source.name
-    & $multitool /disable $names
+while ($true) {
+    $displays = WindowsDisplayManager\GetAllPotentialDisplays
 
-    if ($retries++ -eq 100) {
-        Throw "Failed to disable all other displays."
+    $virtual = $displays | Where-Object { $_.source.description -eq $vdd_name } | Select-Object -First 1
+
+    if (-not $virtual) { Throw "virtual display vanished" }
+
+    # refresh active displays each iteration
+    $active = $displays | Where-Object { $_.active }
+
+    # done if only virtual
+    if ($virtual.active -and $active.Count -le 2) { break }
+
+    # ensure virtual display is primary
+    & $multitool /enable $virtual.source.name
+    & $multitool /setprimary $virtual.source.name
+
+    # disable any extra displays
+    $extra = $active | Where-Object { $_.source.name -ne $virtual.source.name }
+    foreach ($d in $extra) {
+        # try { $d.SetResolution(1,1,$d.CurrentRefreshRate) } catch {}
+        Write-Host "disabling $d"
+        & $multitool /disable $d.source.name
     }
+
+    Start-Sleep -Milliseconds 300
+
+    if ($retries++ -ge 40) { Throw "failed to converge display topology safely" }
 }
 
-# Important to set resolution once all other displays are gone, or windows can change the resolution when the display config changes.
-#
-$vdDisplay.SetResolution($width, $height, $refresh_rate)
+Write-Host "sunshine display diable complete"
 
-if ($vdDisplay.source.description -eq $vdd_name -and (WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrSupported) {
-    # This is a bit of a hack - due to https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/1 and https://github.com/patrick-theprogrammer/WindowsDisplayManager/issues/2, the HDR controls for the virtual display are actually in the first display via WindowsDisplayManager; it's also the reason we needed a different tool to enable/disable the displays despite iterating through the output of WindowsDisplayManager.
-    #
+# ----------------------------
+# set virtual resolution LAST
+# ----------------------------
+$virtual.SetResolution($width, $height, $refresh_rate)
+
+# ----------------------------
+# hdr toggle (windowsdisplaymanager hack)
+# ----------------------------
+$displays = WindowsDisplayManager\GetAllPotentialDisplays
+$hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
+
+if ($hdr_host.hdrInfo.hdrSupported) {
     if ($hdr) {
-        $retries = 0
-        while (!($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled) {
-            $display.EnableHdr() > $null 2>&1
-            if ($retries++ -eq 100) {
-                Throw "Failed to enable HDR."
-            }
+        $i = 0
+        while (-not $hdr_host.hdrInfo.hdrEnabled) {
+            $hdr_host.EnableHdr() | Out-Null
+            if ($i++ -ge 50) { Throw "failed to enable hdr" }
+            Start-Sleep -Milliseconds 200
+            $hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
         }
-    }
-    else {
-        $retries = 0
-        while (($display = WindowsDisplayManager\GetRefreshedDisplay($displays[0])).hdrInfo.hdrEnabled) {
-            $display.DisableHdr() > $null 2>&1
-            if ($retries++ -eq 100) {
-                Throw "Failed to disable HDR."
-            }
+    } else {
+        $i = 0
+        while ($hdr_host.hdrInfo.hdrEnabled) {
+            $hdr_host.DisableHdr() | Out-Null
+            if ($i++ -ge 50) { Throw "failed to disable hdr" }
+            Start-Sleep -Milliseconds 200
+            $hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
         }
     }
 }
+
+Write-Host "sunshine display setup complete (rdp intact)"
