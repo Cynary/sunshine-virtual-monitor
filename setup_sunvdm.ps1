@@ -136,7 +136,7 @@ while ($true) {
     $active = $displays | Where-Object { $_.active }
 
     # done if only virtual
-    if ($virtual.active -and $active.Count -le 2) { break }
+    if ($virtual.active -and $active.Count -le 1) { break }
 
     # ensure virtual display is primary
     & $multitool /enable $virtual.source.name
@@ -188,4 +188,35 @@ if ($hdr_host.hdrInfo.hdrSupported) {
     }
 }
 
-Write-Host "sunshine display setup complete (rdp intact)"
+# ----------------------------
+# final sweep: windows may re-enable a display after SetResolution
+# ----------------------------
+$sweep = 0
+$extra = $null
+$vddFound = $false
+while ($sweep -lt 10) {
+    Start-Sleep -Milliseconds 400
+    $displays = WindowsDisplayManager\GetAllPotentialDisplays
+    $virtual  = $displays | Where-Object { $_.source.description -eq $vdd_name } | Select-Object -First 1
+    if (-not $virtual) { break }
+    $vddFound = $true
+
+    $extra = $displays | Where-Object { $_.active -and $_.source.name -ne $virtual.source.name }
+    if (-not $extra) { break }
+
+    foreach ($d in $extra) {
+        Write-Host "final disable $($d.source.name)"
+        & $multitool /disable $d.source.name
+    }
+    $sweep++
+}
+
+if (-not $vddFound) {
+    Write-Host "WARNING: sweep could not locate the virtual display"
+} elseif ($extra) {
+    Write-Host "WARNING: displays still active after sweep: $($extra.source.name -join ', ')"
+} else {
+    Write-Host "sweep clean: virtual display is alone"
+}
+
+Write-Host "sunshine display setup complete"
