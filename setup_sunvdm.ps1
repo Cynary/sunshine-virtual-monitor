@@ -39,24 +39,6 @@ $stateFile        = Join-Path $filePath "state.json"
 $vsynctool        = Join-Path $filePath "vsynctoggle-1.1.0-x86_64.exe"
 $multitool        = Join-Path $filePath "multimonitortool-x64\MultiMonitorTool.exe"
 $option_file_path = "C:\IddSampleDriver\option.txt"
-# --- patch VDD driver XML with requested resolution if missing ---
-$driverConfig = "C:\VirtualDisplayDriver\vdd_settings.xml"
-# load XML
-[xml]$xml = Get-Content $driverConfig
-
-# ----------------------------
-# snapshot current state
-# ----------------------------
-$state = @{ vsync = & $vsynctool status }
-if ($state.vsync -like "*default*") { $state.vsync = "default" }
-ConvertTo-Json $state | Out-File $stateFile
-
-$initial_displays = WindowsDisplayManager\GetAllPotentialDisplays
-if (!(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile)) {
-    Throw "failed to save initial display state"
-}
-
-& $vsynctool off
 
 # ----------------------------
 # find virtual display device
@@ -74,32 +56,68 @@ if (-not $vdd_name) {
     Throw "virtual display device not found"
 }
 
-# check if resolution exists
-$resFound = $xml.vdd_settings.resolutions.resolution | Where-Object {
-    $_.width -eq $width -and $_.height -eq $height -and $_.refresh -eq $refresh_rate
+# ----------------------------
+# make sure the driver XML offers the requested mode
+# ----------------------------
+# VDD by MTT declares modes as <resolution><width/><height/><refresh_rate/></resolution>
+# and global rates as <global><g_refresh_rate/></global>, which apply to every
+# resolution. A mode is available when a matching width/height exists and the
+# rate is either its own <refresh_rate> or one of the global rates.
+$driverConfig = "C:\VirtualDisplayDriver\vdd_settings.xml"
+$settingsPath = (Get-ItemProperty "HKLM:\SOFTWARE\MikeTheTech\VirtualDisplayDriver" -ErrorAction SilentlyContinue).SettingsPath
+if ($settingsPath) { $driverConfig = Join-Path $settingsPath "vdd_settings.xml" }
+
+if (-not (Test-Path $driverConfig)) {
+    Write-Host "WARNING: driver settings not found at $driverConfig, skipping mode check"
+} else {
+    [xml]$xml = Get-Content $driverConfig
+    $globalRates = @($xml.vdd_settings.global.g_refresh_rate | ForEach-Object { [int]$_ })
+    $sameSize = @($xml.vdd_settings.resolutions.resolution | Where-Object {
+        [int]$_.width -eq $width -and [int]$_.height -eq $height
+    })
+    $modeFound = $sameSize | Where-Object {
+        $_.refresh_rate -and [int]$_.refresh_rate -eq $refresh_rate
+    }
+    if (-not $modeFound -and $sameSize -and $globalRates -contains $refresh_rate) { $modeFound = $true }
+
+    if (-not $modeFound) {
+        Write-Host "mode ${width}x${height}@${refresh_rate} not in driver XML, adding it"
+
+        $newRes = $xml.CreateElement("resolution")
+        foreach ($pair in @(@("width", $width), @("height", $height), @("refresh_rate", $refresh_rate))) {
+            $node = $xml.CreateElement($pair[0]); $node.InnerText = $pair[1]; $newRes.AppendChild($node) > $null
+        }
+        $xml.vdd_settings.resolutions.AppendChild($newRes) > $null
+        $xml.Save($driverConfig)
+
+        # the driver only reads the XML when it starts: if it is already running,
+        # stop it now and wait until it is actually gone before enabling it again
+        $vddDevice = Get-PnpDevice -FriendlyName $vdd_name
+        if ($vddDevice.Status -eq "OK") {
+            Write-Host "driver XML patched, restarting the virtual display driver"
+            $vddDevice | Disable-PnpDevice -Confirm:$false
+            $i = 0
+            while ((Get-PnpDevice -FriendlyName $vdd_name).Status -eq "OK" -and $i++ -lt 20) { Start-Sleep -Milliseconds 250 }
+            Start-Sleep -Milliseconds 1000
+        } else {
+            Write-Host "driver XML patched, will be picked up when the driver is enabled"
+        }
+    }
 }
 
-if (-not $resFound) {
-    Write-Host "Resolution $width x $height @$refresh_rate not in driver XML. Adding it..."
-    
-    # create new <resolution> node
-    $newRes = $xml.CreateElement("resolution")
-    $wNode = $xml.CreateElement("width"); $wNode.InnerText = $width; $newRes.AppendChild($wNode) > $null
-    $hNode = $xml.CreateElement("height"); $hNode.InnerText = $height; $newRes.AppendChild($hNode) > $null
-    $rNode = $xml.CreateElement("refresh"); $rNode.InnerText = $refresh_rate; $newRes.AppendChild($rNode) > $null
+# ----------------------------
+# snapshot current state
+# ----------------------------
+$state = @{ vsync = & $vsynctool status }
+if ($state.vsync -like "*default*") { $state.vsync = "default" }
+ConvertTo-Json $state | Out-File $stateFile
 
-    # append it
-    $xml.vdd_settings.resolutions.AppendChild($newRes) > $null
-
-    # save back
-    $xml.Save($driverConfig)
-    Write-Host "Driver XML patched, restarting Virtual Display Driver..."
-
-    # restart driver service (change service name if yours differs)
-    Get-PnpDevice -FriendlyName $vdd_name | Disable-PnpDevice -Confirm:$false
-
-    Write-Host "Driver restarted, XML changes applied."
+$initial_displays = WindowsDisplayManager\GetAllPotentialDisplays
+if (!(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -filePath $displayStateFile)) {
+    Throw "failed to save initial display state"
 }
+
+& $vsynctool off
 
 # ----------------------------
 # ensure option.txt contains mode
