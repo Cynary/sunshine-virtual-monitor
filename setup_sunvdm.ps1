@@ -146,7 +146,7 @@ while ($true) {
     $extra = $active | Where-Object { $_.source.name -ne $virtual.source.name }
     foreach ($d in $extra) {
         # try { $d.SetResolution(1,1,$d.CurrentRefreshRate) } catch {}
-        Write-Host "disabling $d"
+        Write-Host "disabling $($d.source.name)"
         & $multitool /disable $d.source.name
     }
 
