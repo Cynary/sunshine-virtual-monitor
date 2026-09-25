@@ -165,27 +165,50 @@ $virtual.SetResolution($width, $height, $refresh_rate)
 # ----------------------------
 # hdr toggle (windowsdisplaymanager hack)
 # ----------------------------
-$displays = WindowsDisplayManager\GetAllPotentialDisplays
-$hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
+# The entry whose source.description matches $vdd_name has a null hdrInfo.
+# Refresh every entry and keep the one whose refreshed Description mentions
+# the virtual display ("VDD by MTT via <adapter>").
+Start-Sleep -Milliseconds 600
 
-if ($hdr_host.hdrInfo.hdrSupported) {
-    if ($hdr) {
-        $i = 0
-        while (-not $hdr_host.hdrInfo.hdrEnabled) {
-            $hdr_host.EnableHdr() | Out-Null
-            if ($i++ -ge 50) { Throw "failed to enable hdr" }
-            Start-Sleep -Milliseconds 200
-            $hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
-        }
-    } else {
-        $i = 0
-        while ($hdr_host.hdrInfo.hdrEnabled) {
-            $hdr_host.DisableHdr() | Out-Null
-            if ($i++ -ge 50) { Throw "failed to disable hdr" }
-            Start-Sleep -Milliseconds 200
-            $hdr_host = WindowsDisplayManager\GetRefreshedDisplay($displays[0])
+function Find-VddHdrHost {
+    foreach ($cand in (WindowsDisplayManager\GetAllPotentialDisplays)) {
+        $ref = $null
+        try { $ref = WindowsDisplayManager\GetRefreshedDisplay($cand) } catch { continue }
+        if (-not $ref) { continue }
+        if (-not $ref.HdrInfo) { continue }
+        if (-not $ref.HdrInfo.HdrSupported) { continue }
+        if ($ref.Description -like "*VDD*" -or
+            $ref.Description -like "*MTT*" -or
+            $ref.Description -like "*Virtual Display*") {
+            return $ref
         }
     }
+    return $null
+}
+
+$hdr_host = Find-VddHdrHost
+
+if (-not $hdr_host) {
+    Write-Host "WARNING: no hdr-capable virtual display found, hdr untouched"
+} else {
+    Write-Host "hdr host: $($hdr_host.Description)"
+    Write-Host "hdr check: supported=$($hdr_host.HdrInfo.HdrSupported) enabled=$($hdr_host.HdrInfo.HdrEnabled) target=$hdr_string"
+
+    try {
+        $i = 0
+        while ($hdr_host -and ($hdr_host.HdrInfo.HdrEnabled -ne $hdr) -and ($i -lt 25)) {
+            if ($hdr) { $hdr_host.EnableHdr() | Out-Null }
+            else      { $hdr_host.DisableHdr() | Out-Null }
+            Start-Sleep -Milliseconds 200
+            $hdr_host = Find-VddHdrHost
+            $i++
+        }
+        if ($i -ge 25) { Write-Host "WARNING: hdr toggle did not converge" }
+    } catch {
+        Write-Host "hdr toggle failed: $_"
+    }
+
+    Write-Host "hdr final: enabled=$($hdr_host.HdrInfo.HdrEnabled)"
 }
 
 Write-Host "sunshine display setup complete (rdp intact)"
