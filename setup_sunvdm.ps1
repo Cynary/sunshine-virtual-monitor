@@ -5,17 +5,21 @@ Import-Module WindowsDisplayManager
 # ----------------------------
 # helpers: env-first parsing
 # ----------------------------
+# inside a function $args holds the function's own arguments, so keep the
+# script's arguments for the positional fallback
+$scriptArgs = $args
+
 function Get-Int($envName, $argIndex) {
     $v = [Environment]::GetEnvironmentVariable($envName)
     if ($v) { return [int]$v }
-    if ($args.Length -gt $argIndex) { return [int]$args[$argIndex] }
+    if ($scriptArgs.Length -gt $argIndex) { return [int]$scriptArgs[$argIndex] }
     Throw "missing $envName"
 }
 
 function Get-Bool($envName, $argIndex) {
     $v = [Environment]::GetEnvironmentVariable($envName)
     if ($v) { return $v -match '^(1|true|yes)$' }
-    if ($args.Length -gt $argIndex) { return $args[$argIndex] -match '^(1|true|yes)$' }
+    if ($scriptArgs.Length -gt $argIndex) { return $scriptArgs[$argIndex] -match '^(1|true|yes)$' }
     return $false
 }
 
