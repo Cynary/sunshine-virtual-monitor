@@ -61,14 +61,26 @@ if (!(WindowsDisplayManager\SaveDisplaysToFile -displays $initial_displays -file
 # ----------------------------
 # find virtual display device
 # ----------------------------
-$vdd_name = (
+$vdd_candidates = @(
     Get-PnpDevice -Class Display |
     Where-Object {
         $_.FriendlyName -like "*idd*" -or
         $_.FriendlyName -like "*mtt*" -or
         $_.FriendlyName -like "Virtual Display*"
     }
-)[0].FriendlyName
+)
+# several devices can match, e.g. a leftover IddSampleDriver next to VDD by
+# MTT, or a ghost of a previous install: prefer present devices (a ghost cannot
+# be enabled), then VDD by MTT
+$vdd_name = (
+    $vdd_candidates |
+    Sort-Object @{ Expression = { -not $_.Present } },
+                @{ Expression = { -not (($_.HardwareID -match "MttVDD") -or $_.FriendlyName -like "*mtt*" -or $_.FriendlyName -like "Virtual Display*") } } |
+    Select-Object -First 1
+).FriendlyName
+if ($vdd_candidates.Count -gt 1) {
+    Write-Host "WARNING: several virtual display devices found ($($vdd_candidates.FriendlyName -join ', ')), using $vdd_name"
+}
 
 if (-not $vdd_name) {
     Throw "virtual display device not found"
