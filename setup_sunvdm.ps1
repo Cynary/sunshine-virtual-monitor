@@ -104,14 +104,18 @@ if (-not $resFound) {
 # ----------------------------
 # ensure option.txt contains mode
 # ----------------------------
-if (!(Test-Path $option_file_path)) {
-    New-Item -ItemType Directory -Force -Path (Split-Path $option_file_path) | Out-Null
-    Set-Content -Path $option_file_path -Value "1"
-}
+# option.txt is only read by the legacy IddSampleDriver, which is installed
+# in C:\IddSampleDriver. VDD by MTT uses vdd_settings.xml instead: do not
+# create the folder when the legacy driver is not there.
+if (Test-Path (Split-Path $option_file_path)) {
+    if (!(Test-Path $option_file_path)) {
+        Set-Content -Path $option_file_path -Value "1"
+    }
 
-$option_to_check = "$width, $height, $refresh_rate"
-if ((Get-Content $option_file_path) -notcontains $option_to_check) {
-    Add-Content -Path $option_file_path -Value $option_to_check
+    $option_to_check = "$width, $height, $refresh_rate"
+    if ((Get-Content $option_file_path) -notcontains $option_to_check) {
+        Add-Content -Path $option_file_path -Value $option_to_check
+    }
 }
 
 Write-Host "setting up virtual display ${width}x${height}@${refresh_rate} hdr ${hdr_string}"
