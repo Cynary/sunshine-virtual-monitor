@@ -124,13 +124,26 @@ Get-PnpDevice -FriendlyName $vdd_name | Enable-PnpDevice -Confirm:$false
 # ---------------------------
 # display convergence loop
 # ---------------------------
+# Sunshine does not run the undo command of a do command that fails: from
+# here on the displays are being changed, so put them back before failing.
+function Undo-Setup($reason) {
+    Write-Host "ERROR: $reason, restoring the displays"
+    & (Join-Path $filePath "teardown_sunvdm.ps1")
+    Throw $reason
+}
+
 $retries = 0
 while ($true) {
     $displays = WindowsDisplayManager\GetAllPotentialDisplays
 
     $virtual = $displays | Where-Object { $_.source.description -eq $vdd_name } | Select-Object -First 1
 
-    if (-not $virtual) { Throw "virtual display vanished" }
+    if (-not $virtual) {
+        # the display can take a moment to show up after Enable-PnpDevice
+        if ($retries++ -ge 40) { Undo-Setup "virtual display not found" }
+        Start-Sleep -Milliseconds 300
+        continue
+    }
 
     # refresh active displays each iteration
     $active = $displays | Where-Object { $_.active }
@@ -152,7 +165,11 @@ while ($true) {
 
     Start-Sleep -Milliseconds 300
 
-    if ($retries++ -ge 40) { Throw "failed to converge display topology safely" }
+    # the virtual display is there, stream with what we have rather than abort
+    if ($retries++ -ge 40) {
+        Write-Host "WARNING: display topology did not converge, other displays may still be active"
+        break
+    }
 }
 
 Write-Host "sunshine display diable complete"
@@ -160,7 +177,13 @@ Write-Host "sunshine display diable complete"
 # ----------------------------
 # set virtual resolution LAST
 # ----------------------------
-$virtual.SetResolution($width, $height, $refresh_rate)
+try {
+    if (-not $virtual.SetResolution($width, $height, $refresh_rate)) {
+        Write-Host "WARNING: could not set ${width}x${height}@${refresh_rate} on the virtual display"
+    }
+} catch {
+    Write-Host "WARNING: could not set ${width}x${height}@${refresh_rate} on the virtual display: $_"
+}
 
 # ----------------------------
 # hdr toggle (windowsdisplaymanager hack)
